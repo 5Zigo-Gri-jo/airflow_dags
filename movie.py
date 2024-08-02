@@ -8,14 +8,13 @@ from airflow.operators.python import (
 	PythonVirtualenvOperator,
 	BranchPythonOperator
 )
-from pprint import pprint
 
 def gen_emp(id, rule='all_success'):
 	op = EmptyOperator(task_id=id, trigger_rule=rule)
 	return op
 
 with DAG(
-    'movie',
+    '2019 movies',
     default_args={
         'depends_on_past': False,
         'email_on_failure': False,
@@ -27,7 +26,7 @@ with DAG(
     max_active_tasks=3,
     description='movie DAG',
     schedule="10 4 * * * ",
-#    schedule=timedelta(days=1),
+#   schedule=timedelta(days=1),
     start_date=datetime(2024, 7, 24),
     catchup=True,
     tags=['api', 'movies'],
@@ -49,22 +48,11 @@ with DAG(
 		df = save2df(ds_nodash)
 		print(df.head(5))
 
-	def print_context(ds=None, **kwargs):
-		"""Print the Airflow context and ds variable from the context."""
-		print("::group::All kwargs")
-		pprint(kwargs)
-		print(kwargs)
-		print("::endgroup::")
-		print("::group::Context variable ds")
-		print(ds)
-		print("::endgroup::")
-		return "Whatever you return gets printed in the logs"
 
 	def branch_func(ds_nodash):
 		import os
 		home_dir = os.path.expanduser("~")
 		path = f'{home_dir}/tmp/test_parquet/load_dt={ds_nodash}'
-	#	path = os.path.join(home_dir, f'tmp/test_parquet/load_dt{ds_nodash}')
 		if os.path.exists(path):
 			return 'rm.dir'
 		else:
@@ -88,11 +76,6 @@ with DAG(
 	branch_op = BranchPythonOperator(
 		task_id="branch.op",
 		python_callable=branch_func
-	)
-
-	run_this = PythonOperator(
-		task_id="print_the_context",
-		python_callable=print_context
 	)
 
 	task_start = gen_emp('start')
@@ -184,8 +167,6 @@ with DAG(
 	task_emptysave=EmptyOperator(task_id='get.end',trigger_rule='one_success')
 	
 
-task_start >> join >> task_fetch
-
 task_start >> branch_op
 #branch_op >> task_fetch
 branch_op >> echo_task >> task_fetch
@@ -193,10 +174,7 @@ branch_op >> rm_dir >> task_fetch
 
 task_fetch >> [task_get, multi_y, multi_n, nation_k, nation_f] >> task_emptysave
 
-
 task_emptysave >> task_save >> task_done >> task_end
 
-
-task_start >> run_this >> task_end
-
+task_start >> this >> task_end
 
