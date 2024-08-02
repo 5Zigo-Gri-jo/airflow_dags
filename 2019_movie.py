@@ -14,7 +14,7 @@ def gen_emp(id, rule='all_success'):
 	return op
 
 with DAG(
-    '2019 movies',
+    '2019_movies',
     default_args={
         'depends_on_past': False,
         'email_on_failure': False,
@@ -30,7 +30,13 @@ with DAG(
     catchup=True,
     tags=['api', 'movies'],
 ) as dag:
- REQUIREMENTS=["git+https://github.com/5Zigo-Gri-jo/Extract.git@[branch name]"]
+	#git branch바꿔야함!!!!
+	REQUIREMENTS=["git+https://github.com/5Zigo-Gri-jo/load.git@d1.0.0/tmp_load"]
+
+#icebreaking를 임포트해서 리턴해주는 함수
+	def ice_cat():
+		from load.load import ice_breaking
+		return ice_breaking()
 
 #Python Operator_Transform
 	def tra_pvo(**kwargs):
@@ -44,19 +50,19 @@ with DAG(
 			requirements=REQUIREMENTS, 
 			op_kwargs=op_kw
 		)
-	return task
+		return task
 #Python Operator_Extract
 	def ext_pvo(**kwargs):
 		id = kwargs['id']
 		#op_kw = kwargs['op_kwargs']
-                func_obj = kwargs['func_obj']
-                task = PythonVirtualenvOperator(
-                        task_id=id,
-                        python_callable=func_obj,
-                        system_site_packages=False,
-                        requirements=REQUIREMENTS,
-                 #       op_kwargs=op_kw
-                )
+		func_obj = kwargs['func_obj']
+		task = PythonVirtualenvOperator(
+			task_id=id,
+			python_callable=func_obj,
+			system_site_packages=False,
+			requirements=REQUIREMENTS,
+			# op_kwargs=op_kw
+		)
 		
 #Python Operator_Load
 
@@ -97,7 +103,33 @@ with DAG(
 		sum_df = g.agg({'audiCnt' : 'sum'}).reset_index()
 		print(df)
 
-#Task	
+#Task
+	task_e = PythonVirtualenvOperator(
+		task_id='extract',
+		requirements=REQUIREMENTS,
+		system_site_packages=False,
+		python_callable=ice_cat
+		)
+	task_t = PythonVirtualenvOperator(
+		task_id='transform',
+		requirements=REQUIREMENTS,
+		system_site_packages=False,
+		python_callable=ice_cat
+        	)
+	task_l = PythonVirtualenvOperator(
+		task_id='load',
+		requirements=REQUIREMENTS,
+		system_site_packages=False,
+		python_callable=ice_cat
+		)
+	task_save = PythonVirtualenvOperator(
+		task_id='save.data',
+		python_callable=save_data,
+		system_site_packages=False,
+		requirements=['git+https://github.com/thephunkmonk/movie_dag.git@0.2/api'],
+		trigger_rule="one_success"
+	)
+
 	task_rm_dir = BashOperator(
 		task_id='rm.dir',
 		bash_command='rm -rf ~/tmp/test_parquet/load_dt={{ ds_nodash }}'
@@ -111,82 +143,28 @@ with DAG(
 	task_start = gen_emp('start')
 	task_end = gen_emp('end','all_done')
 
-	task_get_start = gen_emp('get.start')
+	task_join = gen_emp('join')
 
 #Task_extract
-	ext_Jan = ext_pvo(
-		id = 'ext.jan', func_obj = get_data
-	)
-        ext_Feb = ext_pvo(
-                id = 'ext.feb', func_obj = get_data
-        )
-        ext_Mar = ext_pvo(
-                id = 'ext.mar', func_obj = get_data
-        )
-        ext_Apr = ext_pvo(
-                id = 'ext.apr', func_obj = get_data
-        )
-        ext_May = ext_pvo(
-                id = 'ext.may', func_obj = get_data
-        )
-        ext_Jun = ext_pvo(
-                id = 'ext.jun', func_obj = get_data
-        )
-        ext_Jul = ext_pvo(
-                id = 'ext.jul', func_obj = get_data
-        )
-        ext_Agu = ext_pvo(
-                id = 'ext.agu', func_obj = get_data
-        )
-        ext_Sep = ext_pvo(
-                id = 'ext.sep', func_obj = get_data
-        )
-        ext_Oct = ext_pvo(
-                id = 'ext.oct', func_obj = get_data
-        )
-        ext_Nov = ext_pvo(
-                id = 'ext.nov', func_obj = get_data
-        )
-        ext_Dec = ext_pvo(
-                id = 'ext.dec', func_obj = get_data
-        )
+#	ext_Jan = ext_pvo(id = 'ext.jan', func_obj = get_data)
+#	ext_Feb = ext_pvo(id = 'ext.feb', func_obj = get_data)
+#	ext_Mar = ext_pvo(id = 'ext.mar', func_obj = get_data)
+#	ext_Apr = ext_pvo(id = 'ext.apr', func_obj = get_data)
+#	ext_May = ext_pvo(id = 'ext.may', func_obj = get_data)
+#	ext_Jun = ext_pvo(id = 'ext.jun', func_obj = get_data)
+#	ext_Jul = ext_pvo(id = 'ext.jul', func_obj = get_data)
+#	ext_Agu = ext_pvo(id = 'ext.agu', func_obj = get_data)
+#	ext_Sep = ext_pvo(id = 'ext.sep', func_obj = get_data)
+#	ext_Oct = ext_pvo(id = 'ext.oct', func_obj = get_data)
+#	ext_Nov = ext_pvo(id = 'ext.nov', func_obj = get_data)
+#	ext_Dec = ext_pvo(id = 'ext.dec', func_obj = get_data)
 
-#Task
-	task_save = PythonVirtualenvOperator(
-		task_id='save.data',
-		python_callable=save_data,
-		system_site_packages=False,	
-		requirements=['git+https://github.com/thephunkmonk/movie_dag.git@0.2/api'],
-		trigger_rule="one_success"
-   	)
-   
-	task_done = BashOperator(
-        	task_id="make.done",
-        	bash_command="""
-			echo 'done'
-	"""
-	)
-
-	task_err = BashOperator(
-        	task_id="err.report",
-        	bash_command="""
-			echo "error"
-		""",
-        	trigger_rule="one_failed"
-	) 
-
-	join = BashOperator(task_id='join',
-		bash_command="exit 1",
-		trigger_rule='all_done'
-	)
-	
 #Graph
 
-task_start >> branch_op
-branch_op >> task_rm_dir >> task_get_start
-branch_op >> task_get_start
+task_start >> task_rm_dir >> task_join >> task_e >> task_t >> task_l >> task_end
+#branch_op >> task_get_start
 
-get_start >> [ext_Jan, ext_Feb, ext_Mar, ext_Apr, ext_May, ext_Jun, ext_Jul, ext_Agu, ext_Sep, ext_Oct, ext_Nov, ext_Dec] 
+#task_get_start >> [ext_Jan, ext_Feb, ext_Mar, ext_Apr, ext_May, ext_Jun, ext_Jul, ext_Agu, ext_Sep, ext_Oct, ext_Nov, ext_Dec] 
 
 #ext_Jan >> tra_Jan >> load
 #ext_Feb >> tra_Feb >> load
