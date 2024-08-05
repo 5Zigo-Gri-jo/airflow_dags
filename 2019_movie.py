@@ -32,7 +32,7 @@ with DAG(
 ) as dag:
 	#git branch바꿔야함!!!!
 	REQUIREMENTS=["git+https://github.com/5Zigo-Gri-jo/load.git@d1.0.0/tmp_load",
-	"git+https://github.com/5Zigo-Gri-jo/Extract.git@dates/d2.0.0"]
+	"git+https://github.com/5Zigo-Gri-jo/Extract.git@d2.0.0/temp_extract"]
 
 	def date_string(date):
 		date_list = str(date).split()[0].split('-')
@@ -41,16 +41,16 @@ with DAG(
 
 	def looper():
 		from datetime import datetime, timedelta
-		from extract.extract import date_string
+		from extract.ext import date_string
 		date = datetime(2019,1,1)
 		date_str = date_string(date)
 		print("*" * 333)
 		print("date_str:" + date_str)
-		#while date_str != '20191231':
-			#date = date + timedelta(days=1)
-			#date_str = date_string(date)
-		#df = save2df(date_str)
-		#print(df.head(5))
+		while date_str != '20191231':
+			date = date + timedelta(days=1)
+			date_str = date_string(date)
+		df = save2df(date_str)
+		print(df.head(5))
 		print("looper")
 
 	def loop2():
