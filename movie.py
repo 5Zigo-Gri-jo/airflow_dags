@@ -32,6 +32,7 @@ with DAG(
     catchup=True,
     tags=['api', 'movies'],
 ) as dag:
+
 	def common_get_data(ds_nodash, url_param):
 		from mov.api.call import save2df
 		df = save2df(load_dt=ds_nodash, url_param=url_param)
@@ -49,16 +50,6 @@ with DAG(
 		df = save2df(ds_nodash)
 		print(df.head(5))
 
-	def print_context(ds=None, **kwargs):
-		"""Print the Airflow context and ds variable from the context."""
-		print("::group::All kwargs")
-		pprint(kwargs)
-		print(kwargs)
-		print("::endgroup::")
-		print("::group::Context variable ds")
-		print(ds)
-		print("::endgroup::")
-		return "Whatever you return gets printed in the logs"
 
 	def branch_func(ds_nodash):
 		import os
@@ -129,62 +120,6 @@ with DAG(
         	trigger_rule="one_failed"
 	) 
 
-	echo_task = BashOperator(
-		task_id='echo.task',
-		bash_command="echo 'task'",
-		trigger_rule='one_success'
-	)
-
-	join = BashOperator(task_id='join',
-		bash_command="exit 1",
-		trigger_rule='all_done'
-	)
-
-	multi_y=PythonVirtualenvOperator(task_id='multi.y',
-		python_callable=common_get_data,
-        	system_site_packages=False,
-        	requirements=["git+https://github.com/thephunkmonk/movie_dag.git@0.2/api"],
-        	#op_args=["{{ds_nodash}}", "{{ds}}"],
-        	op_kwargs={
-            	"url_param": {"multiMovieYn": "Y"}
-        	},
-		trigger_rule='one_success'
-		) #commercial vs independent films
-	
-	multi_n=PythonVirtualenvOperator(
-		task_id='multi.n',
-        	python_callable=common_get_data,
-        	system_site_packages=False,
-        	requirements=["git+https://github.com/thephunkmonk/movie_dag.git@0.2/api"],
-        	#op_args=["{{ds_nodash}}"],
-        	op_kwargs={'url_param' : {"multiMovieYn": "F"}},
-                trigger_rule='one_success'
-	)
-		
-	nation_k=PythonVirtualenvOperator(
-		task_id='nation.k',
-		python_callable=common_get_data,
-                system_site_packages=False,
-                requirements=["git+https://github.com/thephunkmonk/movie_dag.git@0.2/api"],
-                #op_args=["{{ds_nodash}}"],
-                op_kwargs={'url_param' : {"repNationCd": "K"}},
-                trigger_rule='one_success'
-	) #country of film
-	
-	nation_f=PythonVirtualenvOperator(
-		task_id='nation.f',
-		python_callable=common_get_data,
-                system_site_packages=False,
-                requirements=["git+https://github.com/thephunkmonk/movie_dag.git@0.2/api"],
-                #op_args=["{{ds_nodash}}"],
-                op_kwargs={'url_param' : {"repNationCd": "F"}},
-                trigger_rule='one_success'
-	)
-	task_fetch=EmptyOperator(task_id='fetch',trigger_rule='one_success')
-	task_emptysave=EmptyOperator(task_id='get.end',trigger_rule='one_success')
-	
-
-task_start >> join >> task_fetch
 
 task_start >> branch_op
 #branch_op >> task_fetch
@@ -194,7 +129,6 @@ branch_op >> rm_dir >> task_fetch
 task_fetch >> [task_get, multi_y, multi_n, nation_k, nation_f] >> task_emptysave
 
 
-task_emptysave >> task_save >> task_done >> task_end
 
 
 task_start >> run_this >> task_end
