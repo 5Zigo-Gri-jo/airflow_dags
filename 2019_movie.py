@@ -9,7 +9,7 @@ from airflow.operators.python import (
 	BranchPythonOperator
 )
 
-def gen_emp(id, rule='all_success'):
+def gen_emp(id, rule='one_success'):
 	op = EmptyOperator(task_id=id, trigger_rule=rule)
 	return op
 
@@ -31,14 +31,42 @@ with DAG(
     tags=['api', 'movies'],
 ) as dag:
 	#git branch바꿔야함!!!!
-	REQUIREMENTS=["git+https://github.com/5Zigo-Gri-jo/load.git@d1.0.0/tmp_load"]
+	REQUIREMENTS=["git+https://github.com/5Zigo-Gri-jo/load.git@d1.0.0/tmp_load",
+	"git+https://github.com/5Zigo-Gri-jo/Extract.git@dates/d2.0.0"]
 
-#icebreaking를 임포트해서 리턴해주는 함수
+	def date_string(date):
+		date_list = str(date).split()[0].split('-')
+		date_str = date_list[0]+date_list[1]+date_list[2]
+		return date_str
+
+	def looper():
+		from datetime import datetime, timedelta
+		from extract.extract import date_string
+		date = datetime(2019,1,1)
+		date_str = date_string(date)
+		print("*" * 333)
+		print("date_str:" + date_str)
+		#while date_str != '20191231':
+			#date = date + timedelta(days=1)
+			#date_str = date_string(date)
+		#df = save2df(date_str)
+		#print(df.head(5))
+		print("looper")
+
+	def loop2():
+		while date_str != '20190101':
+			date = date - timedelta(days=1)
+			date_str = date_string(date)
+			
+			movie_list = []
+			tmp_df = save2df(date_str, month_str)
+
+	#icebreaking를 임포트해서 리턴해주는 함수
 	def ice_cat():
 		from load.load import ice_breaking
 		return ice_breaking()
 
-#Python Operator_Transform
+	#Python Operator_Transform
 	def tra_pvo(**kwargs):
 		id = kwargs['id']
 		op_kw = kwargs['op_kwargs']
@@ -51,7 +79,8 @@ with DAG(
 			op_kwargs=op_kw
 		)
 		return task
-#Python Operator_Extract
+
+	#Python Operator_Extract
 	def ext_pvo(**kwargs):
 		id = kwargs['id']
 		#op_kw = kwargs['op_kwargs']
@@ -107,8 +136,8 @@ with DAG(
 	task_e = PythonVirtualenvOperator(
 		task_id='extract',
 		requirements=REQUIREMENTS,
-		system_site_packages=False,
-		python_callable=ice_cat
+		system_site_packages=True,
+		python_callable=looper
 		)
 	task_t = PythonVirtualenvOperator(
 		task_id='transform',
@@ -160,7 +189,6 @@ with DAG(
 #	ext_Dec = ext_pvo(id = 'ext.dec', func_obj = get_data)
 
 #Graph
-
 task_start >> task_rm_dir >> task_join >> task_e >> task_t >> task_l >> task_end
 #branch_op >> task_get_start
 

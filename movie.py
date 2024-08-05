@@ -14,7 +14,7 @@ def gen_emp(id, rule='all_success'):
 	return op
 
 with DAG(
-    '2019 movies',
+    'movies',
     default_args={
         'depends_on_past': False,
         'email_on_failure': False,
@@ -176,5 +176,5 @@ task_fetch >> [task_get, multi_y, multi_n, nation_k, nation_f] >> task_emptysave
 
 task_emptysave >> task_save >> task_done >> task_end
 
-task_start >> this >> task_end
+#task_start >> this >> task_end
 
