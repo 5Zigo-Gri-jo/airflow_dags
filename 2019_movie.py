@@ -41,15 +41,16 @@ with DAG(
 
 	def looper():
 		from datetime import datetime, timedelta
-		from extract.ext import date_string
+		from extract.ext import date_string as d2s
+		from extract.ext import save2df
 		date = datetime(2019,1,1)
-		date_str = date_string(date)
+		date_str = d2s(date)
 		print("*" * 333)
 		print("date_str:" + date_str)
 		while date_str != '20191231':
 			date = date + timedelta(days=1)
-			date_str = date_string(date)
-		df = save2df(date_str)
+			date_str = d2s(date)
+			df = save2df(date_str)
 		print(df.head(5))
 		print("looper")
 
@@ -136,7 +137,7 @@ with DAG(
 	task_e = PythonVirtualenvOperator(
 		task_id='extract',
 		requirements=REQUIREMENTS,
-		system_site_packages=True,
+		system_site_packages=False,
 		python_callable=looper
 		)
 	task_t = PythonVirtualenvOperator(
