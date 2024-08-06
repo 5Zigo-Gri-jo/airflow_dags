@@ -30,8 +30,7 @@ with DAG(
     catchup=True,
     tags=['api', 'movies'],
 ) as dag:
-	#git branch바꿔야함!!!!
-	REQUIREMENTS=["git+https://github.com/5Zigo-Gri-jo/load.git@d1.0.0/tmp_load",
+	REQ=["git+https://github.com/5Zigo-Gri-jo/load.git@d1.0.0/tmp_load",
 	"git+https://github.com/5Zigo-Gri-jo/Extract.git@d2.0.0/temp_extract",
 	"git+https://github.com/5Zigo-Gri-jo/transform.git@d3.0.0/apply_type"]
 
@@ -66,12 +65,10 @@ with DAG(
 			df_all = pd.concat([df_all, df], ignore_index=True)
 			date = date+timedelta(days=1)
 			date_str = date_string(date)
-		num_cols=['rnum', 'audiAcc']
-		print(df['rnum'].dtype)
-		print(df['audiAcc'].dtype)
 
 		df_all.to_parquet('~/data/2019movie/tmp.parquet')
 		return df_all
+
 	#Python Operator_Extract
 	def ext_pvo(**kwargs):
 		id = kwargs['id']
@@ -81,7 +78,7 @@ with DAG(
 			task_id=id,
 			python_callable=func_obj,
 			system_site_packages=False,
-			requirements=REQUIREMENTS,
+			requirements=REQ,
 			# op_kwargs=op_kw
 		)
 		
@@ -127,7 +124,7 @@ with DAG(
 #Task
 	task_e1 = PythonVirtualenvOperator(
 		task_id='extract1',
-		requirements=REQUIREMENTS,
+		requirements=REQ,
 		system_site_packages=False,
 		python_callable=get_parq,
 		op_kwargs = {'date_start':datetime(2018,12,31), 'date_lim':'20190530'}
@@ -135,7 +132,7 @@ with DAG(
 
 	task_e2 = PythonVirtualenvOperator(
 		task_id='extract2',
-		requirements=REQUIREMENTS,
+		requirements=REQ,
 		system_site_packages=False,
 		python_callable=get_parq,
 		op_kwargs = {'date_start':datetime(2019,5,30), 'date_lim':'20191031'}
@@ -143,7 +140,7 @@ with DAG(
 
 	task_e3 = PythonVirtualenvOperator(
 		task_id='extract3',
-		requirements=REQUIREMENTS,
+		requirements=REQ,
 		system_site_packages=False,
 		python_callable=get_parq,
 		op_kwargs = {'date_start':datetime(2019,10,31), 'date_lim':'20191231'}
@@ -151,13 +148,13 @@ with DAG(
 
 	task_t = PythonVirtualenvOperator(
 		task_id='transform',
-		requirements=REQUIREMENTS,
+		requirements=REQ,
 		system_site_packages=False,
 		python_callable=tra_pvo
         	)
 	task_l = PythonVirtualenvOperator(
 		task_id='load',
-		requirements=REQUIREMENTS,
+		requirements=REQ,
 		system_site_packages=False,
 		python_callable=ice_cat
 		)
