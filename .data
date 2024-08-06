@@ -109,10 +109,8 @@ with DAG(
 	def branch_func(ds_nodash):
 		import os
 		home_dir = os.path.expanduser("~")
-		path1 = f'{home_dir}/data/2019movie/20190530.parquet'
-		path2 = f'{home_dir}/data/2019movie/20191031.parquet'
-		path3 = f'{home_dir}/data/2019movie/20191231.parquet'
-		if os.path.exists(path1):
+		path = f'{home_dir}/tmp/test_parquet/load_dt={ds_nodash}'
+		if os.path.exists(path):
 			return 'rm.dir'
 		else:
 			return 'get.data'
@@ -175,16 +173,17 @@ with DAG(
 #		bash_command='rm -rf ~/tmp/test_parquet/load_dt={{ ds_nodash }}'
 #	)
 
-#	branch_op = BranchPythonOperator(
-#		task_id="branch.op",
-#		python_callable=branch_func
-#	)
+	branch_op = BranchPythonOperator(
+		task_id="branch.op",
+		python_callable=branch_func
+	)
 
 	task_start = gen_emp('start')
 	task_end = gen_emp('end','all_done')
+	task_join = gen_emp('join', 'all_done')
 #Task_extract
 
 #Graph
-task_start >> task_e1 
-task_e1 >> task_e2
-task_e2 >> task_e3 >> task_t >> task_t2 >> task_l >> task_end
+task_start >> branch_op  >> task_e1 >> task_join
+branch_op >> task_e2 >> task_join
+branch_op >> task_e3 >> task_join >> task_t >> task_t2 >> task_l >> task_end
