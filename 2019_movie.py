@@ -69,6 +69,9 @@ with DAG(
 		df_all.to_parquet('~/data/2019movie/tmp.parquet')
 		return df_all
 
+	def avgmonth():
+		from transform.trans import avg_month
+		return avg_month()
 	#Python Operator_Extract
 	def ext_pvo(**kwargs):
 		id = kwargs['id']
@@ -152,6 +155,12 @@ with DAG(
 		system_site_packages=False,
 		python_callable=tra_pvo
         	)
+	task_t2 = PythonVirtualenvOperator(
+		task_id='month.avg',
+		requirements=REQ,
+		system_site_packages=False,
+		python_callable=avgmonth
+		)
 	task_l = PythonVirtualenvOperator(
 		task_id='load',
 		requirements=REQ,
@@ -184,7 +193,7 @@ with DAG(
 #Task_extract
 
 #Graph
-task_start >> task_rm_dir >> task_join >> task_e1 >> task_e2 >> task_e3 >> task_t >> task_l >> task_end
+task_start >> task_rm_dir >> task_join >> task_e1 >> task_e2 >> task_e3 >> task_t >> task_t2 >> task_l >> task_end
 #branch_op >> task_get_start
 
 
