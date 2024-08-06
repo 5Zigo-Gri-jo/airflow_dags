@@ -34,33 +34,17 @@ with DAG(
 	REQUIREMENTS=["git+https://github.com/5Zigo-Gri-jo/load.git@d1.0.0/tmp_load",
 	"git+https://github.com/5Zigo-Gri-jo/Extract.git@d2.0.0/temp_extract"]
 
-	def date_string(date):
-		date_list = str(date).split()[0].split('-')
-		date_str = date_list[0]+date_list[1]+date_list[2]
-		return date_str
 
-	def looper():
+	def get_parq(**kwargs):
 		from datetime import datetime, timedelta
-		from extract.ext import date_string as d2s
-		from extract.ext import save2df
-		date = datetime(2019,1,1)
-		date_str = d2s(date)
-		print("*" * 333)
-		print("date_str:" + date_str)
-		while date_str != '20191231':
-			date = date + timedelta(days=1)
-			date_str = d2s(date)
+		from extract.ext import date_string, save2df 
+		date_start = kwargs['date_start']
+		date_lim = kwargs['date_lim']
+		date_str = date_string(date_start)
+		while date_str != date_lim:
+			date_start = date_start + timedelta(days=1)
+			date_str = date_string(date_start)
 			df = save2df(date_str)
-		print(df.head(5))
-		print("looper")
-
-	def loop2():
-		while date_str != '20190101':
-			date = date - timedelta(days=1)
-			date_str = date_string(date)
-			
-			movie_list = []
-			tmp_df = save2df(date_str, month_str)
 
 	#icebreaking를 임포트해서 리턴해주는 함수
 	def ice_cat():
@@ -134,12 +118,30 @@ with DAG(
 		print(df)
 
 #Task
-	task_e = PythonVirtualenvOperator(
-		task_id='extract',
+	task_e1 = PythonVirtualenvOperator(
+		task_id='extract1',
 		requirements=REQUIREMENTS,
 		system_site_packages=False,
-		python_callable=looper
+		python_callable=get_parq,
+		op_kwargs = {'date_start':datetime(2018,12,31), 'date_lim':'20190530'}
 		)
+
+	task_e2 = PythonVirtualenvOperator(
+		task_id='extract2',
+		requirements=REQUIREMENTS,
+		system_site_packages=False,
+		python_callable=get_parq,
+		op_kwargs = {'date_start':datetime(2019,5,30), 'date_lim':'20191031'}
+		)
+
+	task_e3 = PythonVirtualenvOperator(
+		task_id='extract3',
+		requirements=REQUIREMENTS,
+		system_site_packages=False,
+		python_callable=get_parq,
+		op_kwargs = {'date_start':datetime(2019,10,31), 'date_lim':'20191231'}
+		)
+
 	task_t = PythonVirtualenvOperator(
 		task_id='transform',
 		requirements=REQUIREMENTS,
@@ -176,36 +178,10 @@ with DAG(
 	task_join = gen_emp('join')
 
 #Task_extract
-#	ext_Jan = ext_pvo(id = 'ext.jan', func_obj = get_data)
-#	ext_Feb = ext_pvo(id = 'ext.feb', func_obj = get_data)
-#	ext_Mar = ext_pvo(id = 'ext.mar', func_obj = get_data)
-#	ext_Apr = ext_pvo(id = 'ext.apr', func_obj = get_data)
-#	ext_May = ext_pvo(id = 'ext.may', func_obj = get_data)
-#	ext_Jun = ext_pvo(id = 'ext.jun', func_obj = get_data)
-#	ext_Jul = ext_pvo(id = 'ext.jul', func_obj = get_data)
-#	ext_Agu = ext_pvo(id = 'ext.agu', func_obj = get_data)
-#	ext_Sep = ext_pvo(id = 'ext.sep', func_obj = get_data)
-#	ext_Oct = ext_pvo(id = 'ext.oct', func_obj = get_data)
-#	ext_Nov = ext_pvo(id = 'ext.nov', func_obj = get_data)
-#	ext_Dec = ext_pvo(id = 'ext.dec', func_obj = get_data)
 
 #Graph
-task_start >> task_rm_dir >> task_join >> task_e >> task_t >> task_l >> task_end
+task_start >> task_rm_dir >> task_join >> task_e1 >> task_e2 >> task_e3 >> task_t >> task_l >> task_end
 #branch_op >> task_get_start
 
-#task_get_start >> [ext_Jan, ext_Feb, ext_Mar, ext_Apr, ext_May, ext_Jun, ext_Jul, ext_Agu, ext_Sep, ext_Oct, ext_Nov, ext_Dec] 
-
-#ext_Jan >> tra_Jan >> load
-#ext_Feb >> tra_Feb >> load
-#ext_Mar >> tra_Mar >> load
-#ext_Apr >> tra_Apr >> load
-#ext_May >> tra_May >> load
-#ext_Jun >> tra_Jun >> load
-#ext_Jul >> tra_Jul >> load
-#ext_Agu >> tra_Agu >> load
-#ext_Sep >> tra_Sep >> load
-#ext_Oct >> tra_Oct >> load
-#ext_Nov >> tra_Nov >> load
-#ext_Dec >> tra_Dec >> load
 
 #load >> task_save_data >> task_end
