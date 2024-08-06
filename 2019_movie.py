@@ -32,7 +32,8 @@ with DAG(
 ) as dag:
 	#git branch바꿔야함!!!!
 	REQUIREMENTS=["git+https://github.com/5Zigo-Gri-jo/load.git@d1.0.0/tmp_load",
-	"git+https://github.com/5Zigo-Gri-jo/Extract.git@d2.0.0/temp_extract"]
+	"git+https://github.com/5Zigo-Gri-jo/Extract.git@d2.0.0/temp_extract",
+	"git+https://github.com/5Zigo-Gri-jo/transform.git@d3.0.0/apply_type"]
 
 
 	def get_parq(**kwargs):
@@ -54,12 +55,15 @@ with DAG(
 	#Python Operator_Transform
 	def tra_pvo():
 		from transform.trans import apply_type2df
+		import pandas as pd
+		from datetime import datetime,timedelta
+		from extract.ext import date_string
 		df_all = pd.DataFrame()
 		date = datetime(2019,1,1)
 		date_str = date_string(date)
 		while date_str != '20200101':
-			df = apply_type2df(date_str, path='~/data/2019movie')
-			df_all.append(df)
+			df = apply_type2df(date_str)
+			df_all = pd.concat([df_all, df], ignore_index=True)
 			date = date+timedelta(days=1)
 			date_str = date_string(date)
 		num_cols=['rnum', 'audiAcc']
@@ -149,7 +153,7 @@ with DAG(
 		task_id='transform',
 		requirements=REQUIREMENTS,
 		system_site_packages=False,
-		python_callable=ice_cat
+		python_callable=tra_pvo
         	)
 	task_l = PythonVirtualenvOperator(
 		task_id='load',
