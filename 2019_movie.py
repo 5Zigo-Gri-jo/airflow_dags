@@ -52,19 +52,22 @@ with DAG(
 		return ice_breaking()
 
 	#Python Operator_Transform
-	def tra_pvo(**kwargs):
-		id = kwargs['id']
-		op_kw = kwargs['op_kwargs']
-		func_obj = kwargs['func_obj']
-		task = PythonVirtualenvOperator(
-			task_id=id, 
-			python_callable=func_obj, 
-			system_site_packages=False,
-			requirements=REQUIREMENTS, 
-			op_kwargs=op_kw
-		)
-		return task
+	def tra_pvo():
+		from transform.trans import apply_type2df
+		df_all = pd.DataFrame()
+		date = datetime(2019,1,1)
+		date_str = date_string(date)
+		while date_str != '20200101':
+			df = apply_type2df(date_str, path='~/data/2019movie')
+			df_all.append(df)
+			date = date+timedelta(days=1)
+			date_str = date_string(date)
+		num_cols=['rnum', 'audiAcc']
+		print(df['rnum'].dtype)
+		print(df['audiAcc'].dtype)
 
+		df_all.to_parquet('~/data/2019movie/tmp.parquet')
+		return df_all
 	#Python Operator_Extract
 	def ext_pvo(**kwargs):
 		id = kwargs['id']
